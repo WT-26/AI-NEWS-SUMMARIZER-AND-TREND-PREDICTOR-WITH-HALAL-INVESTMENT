@@ -1,8 +1,6 @@
 "use client"
 
-import React from "react"
-
-import { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -23,30 +21,62 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { usePathname, useRouter } from "next/navigation"
+import { auth } from "@/lib/auth"
 
 export function AuthButtons() {
+  const router = useRouter()
+  const pathname = usePathname()
+
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [showSignupDialog, setShowSignupDialog] = useState(false)
+
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userName, setUserName] = useState("")
   const [userEmail, setUserEmail] = useState("")
 
-  const handleLogin = (email: string) => {
-    setIsLoggedIn(true)
-    setUserName(email.split("@")[0])
-    setUserEmail(email)
-  }
+  // ✅ Persist login after refresh
+  useEffect(() => {
+    const logged = auth.isLoggedIn()
+    setIsLoggedIn(logged)
+    if (logged) {
+      const u = auth.getUser()
+      setUserName(u.name || "User")
+      setUserEmail(u.email || "")
+    }
+  }, [])
 
-  const handleSignup = (name: string, email: string) => {
+  const handleLogin = (email: string) => {
+    const name = email.split("@")[0] || "User"
+    auth.login(name, email)
+
     setIsLoggedIn(true)
     setUserName(name)
     setUserEmail(email)
+
+    //  go to dashboard
+    if (pathname !== "/home") router.push("/home")
+  }
+
+  const handleSignup = (name: string, email: string) => {
+    auth.login(name || "User", email)
+
+    setIsLoggedIn(true)
+    setUserName(name || "User")
+    setUserEmail(email)
+
+    // ✅ go to dashboard
+    if (pathname !== "/home") router.push("/home")
   }
 
   const handleLogout = () => {
+    auth.logout()
     setIsLoggedIn(false)
     setUserName("")
     setUserEmail("")
+
+    //  back to welcome
+    if (pathname !== "/") router.push("/")
   }
 
   if (isLoggedIn) {
@@ -55,12 +85,13 @@ export function AuthButtons() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="gap-2 px-2">
             <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold text-sm">
-              {userName.charAt(0).toUpperCase()}
+              {(userName || "U").charAt(0).toUpperCase()}
             </div>
             <span className="font-medium hidden sm:inline">{userName}</span>
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           </Button>
         </DropdownMenuTrigger>
+
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel>
             <div className="flex flex-col">
@@ -68,8 +99,13 @@ export function AuthButtons() {
               <span className="text-xs text-muted-foreground font-normal">{userEmail}</span>
             </div>
           </DropdownMenuLabel>
+
           <DropdownMenuSeparator />
-          <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600" onClick={handleLogout}>
+
+          <DropdownMenuItem
+            className="cursor-pointer text-red-600 focus:text-red-600"
+            onClick={handleLogout}
+          >
             <LogOut className="h-4 w-4 mr-2" />
             Log out
           </DropdownMenuItem>
@@ -109,17 +145,17 @@ function LoginDialog({ open, onOpenChange, onLogin }: LoginDialogProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    // Simulate login
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    // UI-only demo "login"
+    await new Promise((resolve) => setTimeout(resolve, 600))
+
     setIsLoading(false)
     onLogin(email)
     onOpenChange(false)
   }
 
   const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen) {
-      setShowForgotPassword(false)
-    }
+    if (!newOpen) setShowForgotPassword(false)
     onOpenChange(newOpen)
   }
 
@@ -129,13 +165,13 @@ function LoginDialog({ open, onOpenChange, onLogin }: LoginDialogProps) {
         <DialogTrigger asChild>
           <Button variant="outline">Log in</Button>
         </DialogTrigger>
+
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-2xl">Welcome back</DialogTitle>
-            <DialogDescription>
-              Enter your credentials to access your account
-            </DialogDescription>
+            <DialogDescription>Enter your credentials to access your account</DialogDescription>
           </DialogHeader>
+
           <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <div className="space-y-2">
               <Label htmlFor="login-email">Email</Label>
@@ -148,6 +184,7 @@ function LoginDialog({ open, onOpenChange, onLogin }: LoginDialogProps) {
                 required
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="login-password">Password</Label>
               <div className="relative">
@@ -166,17 +203,12 @@ function LoginDialog({ open, onOpenChange, onLogin }: LoginDialogProps) {
                   className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <span className="sr-only">
-                    {showPassword ? "Hide password" : "Show password"}
-                  </span>
+                  {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                  <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
                 </Button>
               </div>
             </div>
+
             <div className="flex items-center justify-between">
               <button
                 type="button"
@@ -189,14 +221,16 @@ function LoginDialog({ open, onOpenChange, onLogin }: LoginDialogProps) {
                 Forgot password?
               </button>
             </div>
+
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Logging in..." : "Log in"}
             </Button>
           </form>
         </DialogContent>
       </Dialog>
-      <ForgotPasswordDialog 
-        open={showForgotPassword} 
+
+      <ForgotPasswordDialog
+        open={showForgotPassword}
         onOpenChange={setShowForgotPassword}
         onBackToLogin={() => {
           setShowForgotPassword(false)
@@ -227,8 +261,7 @@ function ForgotPasswordDialog({ open, onOpenChange, onBackToLogin }: ForgotPassw
       return
     }
     setIsLoading(true)
-    // Simulate password reset
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 600))
     setIsLoading(false)
     setIsSuccess(true)
   }
@@ -273,10 +306,9 @@ function ForgotPasswordDialog({ open, onOpenChange, onBackToLogin }: ForgotPassw
           <>
             <DialogHeader>
               <DialogTitle className="text-2xl">Reset Password</DialogTitle>
-              <DialogDescription>
-                Enter your new password below
-              </DialogDescription>
+              <DialogDescription>Enter your new password below</DialogDescription>
             </DialogHeader>
+
             <form onSubmit={handleSubmit} className="space-y-4 mt-4">
               <div className="space-y-2">
                 <Label htmlFor="new-password">New Password</Label>
@@ -297,20 +329,13 @@ function ForgotPasswordDialog({ open, onOpenChange, onBackToLogin }: ForgotPassw
                     className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    )}
-                    <span className="sr-only">
-                      {showPassword ? "Hide password" : "Show password"}
-                    </span>
+                    {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                    <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Must be at least 8 characters
-                </p>
+                <p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="confirm-new-password">Confirm New Password</Label>
                 <Input
@@ -322,14 +347,12 @@ function ForgotPasswordDialog({ open, onOpenChange, onBackToLogin }: ForgotPassw
                   required
                 />
               </div>
+
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Resetting..." : "Reset Password"}
               </Button>
-              <button
-                type="button"
-                className="w-full text-sm text-primary hover:underline"
-                onClick={handleBackToLogin}
-              >
+
+              <button type="button" className="w-full text-sm text-primary hover:underline" onClick={handleBackToLogin}>
                 Back to Log in
               </button>
             </form>
@@ -354,10 +377,11 @@ function SignupDialog({ open, onOpenChange, onSignup }: SignupDialogProps) {
       alert("Passwords do not match")
       return
     }
+
     setIsLoading(true)
-    // Simulate signup
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 600))
     setIsLoading(false)
+
     onSignup(name, email)
     onOpenChange(false)
   }
@@ -367,13 +391,13 @@ function SignupDialog({ open, onOpenChange, onSignup }: SignupDialogProps) {
       <DialogTrigger asChild>
         <Button>Sign up</Button>
       </DialogTrigger>
+
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-2xl">Create an account</DialogTitle>
-          <DialogDescription>
-            Join Financial News AI to get personalized investment insights
-          </DialogDescription>
+          <DialogDescription>Join Financial News AI to get personalized investment insights</DialogDescription>
         </DialogHeader>
+
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
             <Label htmlFor="signup-name">Full Name</Label>
@@ -386,6 +410,7 @@ function SignupDialog({ open, onOpenChange, onSignup }: SignupDialogProps) {
               required
             />
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="signup-email">Email</Label>
             <Input
@@ -397,6 +422,7 @@ function SignupDialog({ open, onOpenChange, onSignup }: SignupDialogProps) {
               required
             />
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="signup-password">Password</Label>
             <div className="relative">
@@ -416,20 +442,13 @@ function SignupDialog({ open, onOpenChange, onSignup }: SignupDialogProps) {
                 className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                 onClick={() => setShowPassword(!showPassword)}
               >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <Eye className="h-4 w-4 text-muted-foreground" />
-                )}
-                <span className="sr-only">
-                  {showPassword ? "Hide password" : "Show password"}
-                </span>
+                {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Must be at least 8 characters
-            </p>
+            <p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="signup-confirm">Confirm Password</Label>
             <Input
@@ -441,18 +460,15 @@ function SignupDialog({ open, onOpenChange, onSignup }: SignupDialogProps) {
               required
             />
           </div>
+
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Creating account..." : "Create account"}
           </Button>
+
           <p className="text-xs text-center text-muted-foreground">
             By signing up, you agree to our{" "}
-            <a href="#" className="text-primary hover:underline">
-              Terms of Service
-            </a>{" "}
-            and{" "}
-            <a href="#" className="text-primary hover:underline">
-              Privacy Policy
-            </a>
+            <a href="#" className="text-primary hover:underline">Terms of Service</a> and{" "}
+            <a href="#" className="text-primary hover:underline">Privacy Policy</a>
           </p>
         </form>
       </DialogContent>

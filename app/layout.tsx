@@ -10,7 +10,7 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: 'Financial News AI',
   description: 'AI-powered sentiment analysis for smarter investment decisions',
-  generator: 'v0.app',
+  generator: 'Next.js',
   icons: {
     icon: [
       {
@@ -23,14 +23,10 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`font-sans antialiased`}>
+      <body className="min-h-screen app-gradient font-sans antialiased">
         {children}
         <Analytics />
       </body>

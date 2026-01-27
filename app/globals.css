@@ -11,7 +11,7 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
   /* Updated primary to financial blue */
-  --primary: oklch(0.45 0.15 250);
+  --primary: oklch(0.46 0.16 252);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -43,6 +43,10 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* Gradient background tokens */
+  --bg-start: oklch(0.98 0.02 250);
+  --bg-mid: oklch(1 0 0);
+  --bg-end: oklch(0.98 0.02 280);
 }
 
 .dark {
@@ -139,4 +143,18 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Premium app background */
+.app-gradient {
+  background:
+    radial-gradient(900px circle at 15% 10%, oklch(0.86 0.08 245 / 0.45), transparent 55%),
+    radial-gradient(900px circle at 85% 15%, oklch(0.86 0.08 285 / 0.35), transparent 55%),
+    linear-gradient(to bottom, var(--bg-start), var(--bg-mid), var(--bg-end));
+}
+
+/* Glass header look */
+.glass-header {
+  background: color-mix(in oklch, white 70%, transparent);
+  backdrop-filter: blur(10px);
 }
