@@ -65,7 +65,7 @@ export function AuthButtons() {
     setUserName(name || "User")
     setUserEmail(email)
 
-    // ✅ go to dashboard
+    // go to dashboard
     if (pathname !== "/home") router.push("/home")
   }
 

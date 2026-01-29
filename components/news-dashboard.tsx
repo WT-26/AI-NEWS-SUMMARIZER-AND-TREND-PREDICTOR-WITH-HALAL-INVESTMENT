@@ -1,17 +1,8 @@
 "use client"
 
-import { CardTitle } from "@/components/ui/card"
-import { CardDescription } from "@/components/ui/card"
-import { CardHeader } from "@/components/ui/card"
-import { Card } from "@/components/ui/card"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { useMemo, useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search } from "lucide-react"
 import { NewsCard } from "@/components/news-card"
-import { HalalFilterToggle } from "@/components/halal-filter-toggle"
-import { Input } from "@/components/ui/input"
-import { Sparkles, TrendingUp, TrendingDown } from "lucide-react"
 
 const mockNewsData = [
   {
@@ -136,118 +127,85 @@ const mockNewsData = [
   },
 ]
 
-export function NewsDashboard() {
-  const [news, setNews] = useState(mockNewsData)
-  const [halalFilterEnabled, setHalalFilterEnabled] = useState(false)
+type NewsDashboardProps = {
+  /** search controlled by your HEADER (top search bar) */
+  searchQuery?: string
+  /** halal filter controlled by your HEADER button/toggle */
+  halalOnly?: boolean
+}
+
+export function NewsDashboard({ searchQuery = "", halalOnly = false }: NewsDashboardProps) {
+  const [news] = useState(mockNewsData)
   const [favoriteStocks, setFavoriteStocks] = useState<string[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
 
   const toggleFavorite = (ticker: string) => {
     setFavoriteStocks((prev) => (prev.includes(ticker) ? prev.filter((t) => t !== ticker) : [...prev, ticker]))
   }
 
-  const filteredNews = news.filter((item) => {
-    const matchesHalal = halalFilterEnabled ? item.isHalal : true
-    const matchesSearch = searchQuery
-      ? item.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.ticker.toLowerCase().includes(searchQuery.toLowerCase())
-      : true
-    return matchesHalal && matchesSearch
-  })
+  const filteredNews = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    return news.filter((item) => {
+      const matchesHalal = halalOnly ? item.isHalal : true
+      const matchesSearch = q
+        ? item.company.toLowerCase().includes(q) || item.ticker.toLowerCase().includes(q)
+        : true
+      return matchesHalal && matchesSearch
+    })
+  }, [news, searchQuery, halalOnly])
+
+  const Feed = ({ items }: { items: typeof filteredNews }) => (
+    <div className="grid gap-4">
+      {items.map((item) => (
+        <NewsCard
+          key={item.id}
+          news={item}
+          isFavorite={favoriteStocks.includes(item.ticker)}
+          onToggleFavorite={toggleFavorite}
+        />
+      ))}
+    </div>
+  )
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      {/* Header */}
-      <div className="flex flex-col gap-6 mb-8">
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-          <div>
-            <h1 className="text-4xl font-bold tracking-tight text-balance mb-2">Financial News AI</h1>
-            <p className="text-muted-foreground text-lg">
-              AI-powered sentiment analysis for smarter investment decisions
-            </p>
-          </div>
-          <HalalFilterToggle enabled={halalFilterEnabled} onToggle={setHalalFilterEnabled} />
-        </div>
-
-        {/* Search Input */}
-        <div className="relative max-w-xl">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search by company name or ticker..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        </div>
-
-      {/* News Feed */}
+    <div className="space-y-5">
+      {/* Tabs (more premium) */}
       <Tabs defaultValue="all" className="w-full">
-        <TabsList>
-          <TabsTrigger value="all">All News</TabsTrigger>
-          <TabsTrigger value="earnings">Earnings</TabsTrigger>
-          <TabsTrigger value="market">Market Updates</TabsTrigger>
-          <TabsTrigger value="dividends">Dividends</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <TabsList className="rounded-xl bg-white/70 border border-slate-200 shadow-sm p-1">
+            <TabsTrigger value="all" className="rounded-lg px-3">
+              All News
+            </TabsTrigger>
+            <TabsTrigger value="earnings" className="rounded-lg px-3">
+              Earnings
+            </TabsTrigger>
+            <TabsTrigger value="market" className="rounded-lg px-3">
+              Market Updates
+            </TabsTrigger>
+            <TabsTrigger value="dividends" className="rounded-lg px-3">
+              Dividends
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Optional: show result count (nice + professional) */}
+          <div className="text-xs text-slate-500">
+            Showing <span className="font-medium text-slate-900">{filteredNews.length}</span> articles
+          </div>
+        </div>
 
         <TabsContent value="all" className="mt-6">
-          <div className="grid gap-4">
-            {filteredNews.map((item) => (
-              <NewsCard
-                key={item.id}
-                news={item}
-                isFavorite={favoriteStocks.includes(item.ticker)}
-                onToggleFavorite={toggleFavorite}
-              />
-            ))}
-          </div>
+          <Feed items={filteredNews} />
         </TabsContent>
 
         <TabsContent value="earnings" className="mt-6">
-          <div className="grid gap-4">
-            {filteredNews
-              .filter((item) => item.category === "earnings")
-              .map((item) => (
-                <NewsCard
-                  key={item.id}
-                  news={item}
-                  isFavorite={favoriteStocks.includes(item.ticker)}
-                  onToggleFavorite={toggleFavorite}
-                />
-              ))}
-          </div>
+          <Feed items={filteredNews.filter((i) => i.category === "earnings")} />
         </TabsContent>
 
         <TabsContent value="market" className="mt-6">
-          <div className="grid gap-4">
-            {filteredNews
-              .filter((item) => item.category === "market")
-              .map((item) => (
-                <NewsCard
-                  key={item.id}
-                  news={item}
-                  isFavorite={favoriteStocks.includes(item.ticker)}
-                  onToggleFavorite={toggleFavorite}
-                />
-              ))}
-          </div>
+          <Feed items={filteredNews.filter((i) => i.category === "market")} />
         </TabsContent>
 
         <TabsContent value="dividends" className="mt-6">
-          <div className="grid gap-4">
-            {filteredNews
-              .filter((item) => item.category === "dividends")
-              .map((item) => (
-                <NewsCard
-                  key={item.id}
-                  news={item}
-                  isFavorite={favoriteStocks.includes(item.ticker)}
-                  onToggleFavorite={toggleFavorite}
-                />
-              ))}
-          </div>
+          <Feed items={filteredNews.filter((i) => i.category === "dividends")} />
         </TabsContent>
       </Tabs>
     </div>
