@@ -481,6 +481,7 @@ export function NewsCard({ news }: NewsCardProps) {
               </span>
             </div>
 
+            {/* ✅ Halal status label goes HERE */}
             {news.isHalal ? (
               <Badge className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200">
                 ✅ Halal Compliant
@@ -490,6 +491,7 @@ export function NewsCard({ news }: NewsCardProps) {
                 ❌ Non-Halal
               </Badge>
             )}
+
             <span className="text-sm text-muted-foreground">{formatDate(news.publishedAt)}</span>
           </div>
 
@@ -505,8 +507,9 @@ export function NewsCard({ news }: NewsCardProps) {
             </div>
           </div>
 
-          <div className="flex flex-col lg:flex-row gap-4 pt-2">
-            <div className="flex-1 border-l-4 border-primary/30 pl-4">
+          {/* Key points */}
+          <div className="pt-2">
+            <div className="border-l-4 border-primary/30 pl-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Key Points:</p>
               <ul className="space-y-1.5">
                 {news.summary.map((point, index) => (
@@ -517,22 +520,23 @@ export function NewsCard({ news }: NewsCardProps) {
                 ))}
               </ul>
             </div>
+          </div>
 
-            <div className="lg:w-56 shrink-0">
-              <Button
-                onClick={() => {
-                  setExpanded(!expanded)
-                  setShowTemplate(true)
-                  setError(null)
-                  setAnalysis(null)
-                  setIsAnalyzing(false)
-                }}
-                className="w-full gap-2"
-              >
-                <Sparkles className="h-4 w-4" />
-                View AI Analysis
-              </Button>
-            </div>
+          {/* Button at bottom */}
+          <div className="pt-4">
+            <Button
+              onClick={() => {
+                setExpanded(!expanded)
+                setShowTemplate(true)
+                setError(null)
+                setAnalysis(null)
+                setIsAnalyzing(false)
+              }}
+              className="w-full gap-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              View AI Analysis
+            </Button>
           </div>
 
           <div className="pt-2">
